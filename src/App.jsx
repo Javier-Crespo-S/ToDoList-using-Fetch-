@@ -11,22 +11,30 @@ const TaskCounter = ({ taskList }) => {
   );
 };
 
+
 const AddTask = ({ taskList, setTaskList, myTodoUrl }) => {
   const [inputValue, setInputValue] = useState('');
 
   const handleKeyDown = async (e) => {
     if (e.key === 'Enter' && inputValue.trim() !== '') {
-      const newTask = { label: inputValue, is_done: false };
-      const newList = [...taskList, newTask];
 
-      setTaskList(newList);
-      setInputValue('');
+      const newTask = { 
+        label: inputValue.trim(), 
+        is_done: false 
+      };
 
-      await fetch(myTodoUrl, {
+      const resp = await fetch(myTodoUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTask),
       });
+
+      if (resp.ok) {
+        const createdTask = await resp.json();
+        setTaskList([...taskList, createdTask]);
+      }
+
+      setInputValue('');
     }
   };
 
@@ -41,17 +49,16 @@ const AddTask = ({ taskList, setTaskList, myTodoUrl }) => {
   );
 };
 
-const HandleTask = ({ task, index, taskList, setTaskList, apiUrl }) => {
+
+const HandleTask = ({ task, taskList, setTaskList, apiUrl }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  const removeTask = async (task) => {
-    const newList = taskList.filter((task, i) => i !== index);
+  const removeTask = async () => {
+    const newList = taskList.filter((tarea) => tarea.id !== task.id);
     setTaskList(newList);
-    console.log(task);
 
     await fetch(`${apiUrl}/${task.id}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
     });
   };
 
@@ -59,14 +66,12 @@ const HandleTask = ({ task, index, taskList, setTaskList, apiUrl }) => {
     <li
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{ position: 'relative', marginBottom: '5px' }}
+      style={{ position: 'relative'}}
     >
-      {task.label ?? task}
+      {task.label} 
       {isHovered && (
         <button
-          onClick={() => {
-            removeTask(task);
-          }}
+          onClick={removeTask}
           style={{
             padding: '1px 8px',
             marginLeft: '10px',
@@ -84,17 +89,16 @@ const HandleTask = ({ task, index, taskList, setTaskList, apiUrl }) => {
   );
 };
 
-const ShowTask_List = ({ taskList, setTaskList, myTodoUrl, apiUrl }) => {
+const ShowTask_List = ({ taskList, setTaskList, apiUrl }) => {
   return (
     <ul style={{ listStyle: 'none' }}>
       {taskList.map((task, index) => (
         <HandleTask
-          key={index}
+          key={task.id}
           task={task}
           index={index}
           taskList={taskList}
           setTaskList={setTaskList}
-          myTodoUrl={myTodoUrl}
           apiUrl={apiUrl}
         />
       ))}
@@ -105,6 +109,7 @@ const ShowTask_List = ({ taskList, setTaskList, myTodoUrl, apiUrl }) => {
 function App() {
   const [taskList, setTaskList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const myUserUrl = 'https://playground.4geeks.com/todo/users/JavierCS';
   const myTodoUrl = 'https://playground.4geeks.com/todo/todos/JavierCS';
   const apiUrl = 'https://playground.4geeks.com/todo/todos';
@@ -132,17 +137,19 @@ function App() {
     <div>
       <h1>To Do List</h1>
       {isLoading && <h2>Loading...</h2>}
+
       <AddTask
         taskList={taskList}
         setTaskList={setTaskList}
         myTodoUrl={myTodoUrl}
       />
+
       <ShowTask_List
         taskList={taskList}
         setTaskList={setTaskList}
-        myTodoUrl={myTodoUrl}
         apiUrl={apiUrl}
       />
+
       <TaskCounter taskList={taskList} />
     </div>
   );
